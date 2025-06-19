@@ -45,4 +45,16 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function moodLogs() {
+        return $this->hasMany(MoodLog::class);
+    }
+
+    public function tasks() {
+        return $this->hasMany(Tasks::class);
+    }
+
+    public function posts() {
+        return $this->hasMany(Post::class);
+    }
 }
