@@ -2,12 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Support\Facades\Storage;
+use App\Http\Requests\ProfileUpdateRequest; // Ganti 'Request' dengan ini jika ada
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use App\Models\User;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Validator;
+
+
 
 class ProfileController extends Controller
 {
@@ -24,37 +31,55 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(Request $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
+        // Validasi lengkap untuk semua field
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)->ignore($request->user()->id)],
+            'major' => ['nullable', 'string', 'max:255'],
+            'university' => ['nullable', 'string', 'max:255'],
+            'bio' => ['nullable', 'string', 'max:1000'],
+            'photo' => ['nullable', 'image', 'max:2048'],
         ]);
 
         $user = $request->user();
 
-        Auth::logout();
+        // Mengisi data teks
+        $user->fill($request->except('photo'));
 
-        $user->delete();
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
+        }
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Proses upload foto jika ada
+        if ($request->hasFile('photo')) {
+            if ($user->profile_photo_path) {
+                Storage::disk('public')->delete($user->profile_photo_path);
+            }
+            $user->profile_photo_path = $request->file('photo')->store('profile-photos', 'public');
+        }
 
-        return Redirect::to('/');
+        // Simpan semua perubahan
+        $user->save();
+
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
+        public function destroy(Request $request): RedirectResponse
+        {
+            $request->validateWithBag('userDeletion', [
+                'password' => ['required', 'current_password'],
+            ]);
+
+            $user = $request->user();
+
+            Auth::logout();
+
+            $user->delete();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return Redirect::to('/');
+        }
 }
