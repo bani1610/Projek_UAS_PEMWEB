@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\FilamentUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,10 +22,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'major',      // <-- Tambahkan ini
-        'university', // <-- Tambahkan ini
-        'bio',        // <-- Tambahkan ini
-        'profile_photo_path', // <-- Tambahkan ini
+        'nim',
+        'universitas',
+        'jurusan',
+        'role'
     ];
 
     /**
@@ -62,22 +63,36 @@ class User extends Authenticatable
         ];
     }
 
-    public function moodLogs() {
+    public function isAdmin()
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isUser()
+    {
+        return $this->role === 'user';
+    }
+
+    public function moodLogs()
+    {
         return $this->hasMany(MoodLog::class);
     }
 
-    public function tasks() {
+    public function tasks()
+    {
         return $this->hasMany(Tasks::class);
     }
 
-    public function posts() {
-        return $this->hasMany(Post::class);
+    public function posts()
+    {
+        return $this->hasMany(Post::class, 'user_id');
     }
     public function likes()
     {
         return $this->belongsToMany(Post::class, 'likes', 'user_id', 'post_id');
     }
-    public function comments() {
+    public function comments()
+    {
         return $this->hasMany(Comment::class);
     }
 }

@@ -2,9 +2,14 @@
 
 namespace App\Providers;
 
-use Illuminate\Support\ServiceProvider;
-use App\Policies\PostPolicy; // <-- Impor PostPolicy
+use App\Policies\PostPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as Authenticatable;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\ServiceProvider;
+use App\Http\Responses\FilamentLogoutResponse;
+use Filament\Http\Responses\Auth\Contracts\LogoutResponse as LogoutResponseContract;
+
 class AppServiceProvider extends ServiceProvider
 {
 
@@ -16,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+       $this->app->bind(LogoutResponseContract::class, FilamentLogoutResponse::class);
     }
 
     /**
@@ -24,6 +29,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Bagikan data notifikasi ke view 'layouts.navigation' setiap kali view itu di-render.
+        View::composer('layouts.navigation', function ($view) {
+            // Cek dulu apakah ada pengguna yang sedang login
+            if (Auth::check()) {
+                $user = Auth::user();
+                $unreadNotifications = $user->unreadNotifications()->take(5)->get();
+                $view->with('unreadNotifications', $unreadNotifications);
+            } else {
+                // Jika tidak ada yang login, kirim collection kosong agar tidak error di view
+                $view->with('unreadNotifications', collect());
+            }
+        });
     }
 }
