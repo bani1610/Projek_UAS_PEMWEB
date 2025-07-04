@@ -8,62 +8,61 @@ use App\Http\Controllers\Forum\PostController;
 use App\Http\Controllers\Forum\CommentController;
 use App\Http\Controllers\Forum\CategoryController;
 use App\Http\Controllers\StatisticController;
+use GuzzleHttp\Middleware;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Forum\LikeController;
-use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\ForumController as AdminForumController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-*/
 
-// Rute publik akan langsung diarahkan ke dashboard jika sudah login
+
+// Rute publik (halaman utama, dll)
 Route::get('/', function () {
-    // Cek role user saat mengakses root
-    if (auth()->check()) {
-        if (auth()->user()->isAdmin()) {
-            return redirect('/admin');
-        }
-        return redirect()->route('dashboard');
-    }
-    return redirect()->route('login');
+    return redirect()->route('dashboard');
 });
 
-// Grup rute untuk USER saja
+Route::get('/coba', function () {
+    return view('coba');
+});
+// Rute yang hanya bisa diakses setelah login
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard utama
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
+
     // Mood Tracking
     Route::post('/moods', [MoodLogController::class, 'store'])->name('moods.store');
 
-    // Manajemen Tugas
+    // Manajemen Tugas (menggunakan resource controller)
     Route::resource('tasks', TaskController::class);
 
-    // Profil Pengguna
+
+    // Profile (bawaan Breeze)
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // Statistik
     Route::get('/statistics', StatisticController::class)->name('statistics');
 
-    // Forum
     Route::get('/forum', [PostController::class, 'index'])->name('forum.index');
     Route::get('/forum/posts/create', [PostController::class, 'create'])->name('forum.posts.create');
     Route::post('/forum/posts', [PostController::class, 'store'])->name('forum.posts.store');
     Route::get('/forum/posts/{post}', [PostController::class, 'show'])->name('forum.posts.show');
+    Route::post('/forum/posts/{post}/comments', [CommentController::class, 'store'])->name('forum.comments.store');
+    Route::get('/forum/category/{category}', [CategoryController::class, 'show'])->name('forum.category.show');
     Route::delete('/forum/posts/{post}', [PostController::class, 'destroy'])->name('forum.posts.destroy');
     Route::get('/forum/my-posts', [PostController::class, 'myPosts'])->name('forum.myposts');
-    Route::get('/forum/category/{category}', [CategoryController::class, 'show'])->name('forum.category.show');
-
-    // Interaksi Forum (Like & Komentar)
-    Route::post('/forum/posts/{post}/comments', [CommentController::class, 'store'])->name('forum.comments.store');
-    Route::post('/forum/posts/{post}/like', [LikeController::class, 'toggleLike'])->name('forum.posts.like');
-    
-    // Notifikasi
-    Route::post('/notifications/mark-as-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAsRead');
 });
 
-require __DIR__.'/auth.php';
+Route::middleware(['auth', 'is_admin'])->prefix('admin')->name('admin.')->group(function () {
+        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+        // Manajemen Pengguna
+        Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+
+        // Manajemen Forum
+        Route::get('/forum/posts', [AdminForumController::class, 'posts'])->name('forum.posts');
+        Route::delete('/forum/posts/{post}', [AdminForumController::class, 'destroyPost'])->name('forum.posts.destroy');
+    });
+
+require __DIR__.'/auth.php'; // Rute autentikasi dari Breeze

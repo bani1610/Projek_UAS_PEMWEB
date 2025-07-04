@@ -85,29 +85,23 @@ class TaskController extends Controller
 
     public function update(Request $request, Tasks $task)
     {
-        // Cek apakah ini adalah request dari checkbox di halaman daftar tugas
+        // Pastikan pengguna hanya bisa mengupdate tugas miliknya sendiri
+        // $this->authorize('update', $task);
+
+        // Cek apakah ini adalah request untuk toggle status
         if ($request->has('toggle_complete')) {
-            // Ubah logika dari 'is_completed' menjadi 'status'
-            // Jika statusnya 'done', ubah kembali ke 'inprogress'. Jika bukan, ubah menjadi 'done'.
-            $task->status = ($task->status === 'done') ? 'inprogress' : 'done';
+            // Balikkan status is_completed
+            $task->is_completed = !$task->is_completed;
             $task->save();
 
+            // Redirect KEMBALI ke halaman sebelumnya (misal: /tasks?filter=active)
             return back()->with('success', 'Status tugas berhasil diperbarui!');
         }
 
-        // Ini adalah logika untuk memproses form dari halaman "Edit Tugas"
-        $validated = $request->validate([
-            'judul_tugas' => 'required|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'deadline' => 'nullable|date',
-            'prioritas' => 'required|in:rendah,sedang,tinggi',
-            'beban_kognitif' => 'required|in:ringan,sedang,berat',
-            'status' => 'required|in:todo,inprogress,done',
-        ]);
+        // (Opsional) Tambahkan logika untuk update dari form edit di sini
+        // ...
 
-        $task->update($validated);
-
-        return redirect()->route('tasks.index')->with('success', 'Tugas berhasil diperbarui.');
+        return redirect()->route('tasks.index')->with('success', 'Tugas berhasil diperbarui!');
     }
 
     /**
