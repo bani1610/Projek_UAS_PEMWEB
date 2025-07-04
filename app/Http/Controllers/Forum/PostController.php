@@ -15,7 +15,10 @@ class PostController extends Controller
     // Menampilkan halaman utama forum dengan daftar postingan
     public function index()
     {
-    $posts = Post::with('user')->withCount('comments')->latest()->paginate(10);
+     $posts = Post::with('user', 'category', 'likes') 
+                 ->withCount('comments')
+                 ->latest()
+                 ->paginate(10);
 
     // --- Tambahkan logging ini untuk debugging ---
     foreach ($posts as $post) {
@@ -40,7 +43,7 @@ class PostController extends Controller
     {
         $validated = $request->validate([
             'judul' => 'required|string|max:255',
-            'isi_post' => 'required|string|min:20',
+            'isi_post' => 'required|string|min:5',
             'kategori_id' => 'required|exists:categories,kategori_id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi untuk gambar
         ]);
